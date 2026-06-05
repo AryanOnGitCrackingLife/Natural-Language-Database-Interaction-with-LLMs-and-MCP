@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NL2SQL Local System</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap" rel="stylesheet">
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Poppins', sans-serif;
+        }
+
+        body {
+            height: 100vh;
+            background: linear-gradient(135deg, #0f2027, #203a43, #2c5364);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .container {
+            background: #ffffff;
+            padding: 40px;
+            border-radius: 15px;
+            width: 600px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            text-align: center;
+        }
+
+        h1 {
+            color: #2c5364;
+            margin-bottom: 10px;
+        }
+
+        p {
+            color: #555;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .input-box {
+            display: flex;
+            gap: 10px;
+        }
+
+        input[type="text"] {
+            flex: 1;
+            padding: 12px 15px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            outline: none;
+            font-size: 14px;
+            transition: 0.3s;
+        }
+
+        input[type="text"]:focus {
+            border-color: #2c5364;
+            box-shadow: 0 0 5px rgba(44, 83, 100, 0.3);
+        }
+
+        button {
+            padding: 12px 20px;
+            background: #2c5364;
+            border: none;
+            color: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: 0.3s;
+        }
+
+        button:hover {
+            background: #1b3c4a;
+        }
+
+        .result-box {
+            margin-top: 30px;
+            text-align: left;
+            background: #f7f9fb;
+            padding: 20px;
+            border-radius: 10px;
+            max-height: 300px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .sql {
+            font-size: 13px;
+            background: #eef3f7;
+            padding: 10px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            color: #333;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+        }
+
+        table th, table td {
+            padding: 8px;
+            border-bottom: 1px solid #ddd;
+            text-align: left;
+        }
+
+        table th {
+            background: #2c5364;
+            color: white;
+        }
+
+        .footer {
+            margin-top: 20px;
+            font-size: 12px;
+            color: #888;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>NL2SQL Local System</h1>
+    <p>Ask questions in natural language. Powered by Local LLM + SQLite</p>
+
+    <form id="queryForm">
+        <div class="input-box">
+            <input 
+                type="text" 
+                name="query" 
+                id="queryInput" 
+                placeholder="Example: Show employees with salary greater than 50000"
+                required
+            >
+            <button type="submit">Run</button>
+        </div>
+    </form>
+
+    <div class="result-box" id="resultBox">
+        <h3>Generated SQL:</h3>
+        <div class="sql" id="sqlQuery"></div>
+
+        <h3>Results:</h3>
+        <div id="tableContainer"></div>
+    </div>
+
+    <div class="footer">
+        Local Database • Flask • Ollama • NL2SQL Project
+    </div>
+</div>
+
+<script>
+    const form = document.getElementById("queryForm");
+    const resultBox = document.getElementById("resultBox");
+    const sqlQueryDiv = document.getElementById("sqlQuery");
+    const tableContainer = document.getElementById("tableContainer");
+
+    form.addEventListener("submit", async function(e) {
+        e.preventDefault();
+
+        const queryValue = document.getElementById("queryInput").value;
+
+        const formData = new FormData();
+        formData.append("query", queryValue);
+
+        const response = await fetch("/query", {
+            method: "POST",
+            body: formData
+        });
+
+        const data = await response.json();
+
+        resultBox.style.display = "block";
+
+        // Show SQL
+        sqlQueryDiv.textContent = data.generated_sql || "No SQL generated";
+
+        // Show Results Table
+        if (data.results && data.results.length > 0) {
+            let table = "<table><tr>";
+
+            // Table Headers
+            Object.keys(data.results[0]).forEach(key => {
+                table += `<th>${key}</th>`;
+            });
+            table += "</tr>";
+
+            // Table Rows
+            data.results.forEach(row => {
+                table += "<tr>";
+                Object.values(row).forEach(value => {
+                    table += `<td>${value}</td>`;
+                });
+                table += "</tr>";
+            });
+
+            table += "</table>";
+            tableContainer.innerHTML = table;
+        } else if (data.error) {
+            tableContainer.innerHTML = `<p style="color:red;">Error: ${data.error}</p>`;
+        } else {
+            tableContainer.innerHTML = "<p>No results found.</p>";
+        }
+    });
+</script>
+
+</body>
+</html>
